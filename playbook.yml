@@ -1,0 +1,119 @@
+- hosts: localhost
+  connection: local
+
+  vars:
+    
+
+  tasks:
+    
+    - name: Check the version of CentOS
+      command: hostnamectl
+      register: os_check
+      ignore_errors: yes
+
+    -   name: Install Role Java
+        local_action: command ansible-galaxy install -f geerlingguy.java 
+
+    -   name: Install Role elasticsearch
+        local_action: command ansible-galaxy install -f geerlingguy.elasticsearch 
+
+    -   name: Install Role logstash
+        local_action: command ansible-galaxy install -f geerlingguy.logstash
+
+    -   name: Install Role kibana
+        local_action: command ansible-galaxy install -f geerlingguy.kibana
+
+    -   name: Install Role filebeat
+        local_action: command ansible-galaxy install -f geerlingguy.filebeat
+
+    -   name: Applying role elasticsearch
+        command: mv ~/.ansible/roles/geerlingguy.elasticsearch ~/.ansible/roles/pwslab.elasticsearch
+        ignore_errors: yes
+
+    -   name: Applying role logstash
+        command: mv ~/.ansible/roles/geerlingguy.logstash ~/.ansible/roles/pwslab.logstash
+        ignore_errors: yes
+
+    -   name: Applying role kibana
+        command: mv ~/.ansible/roles/geerlingguy.kibana ~/.ansible/roles/pwslab.kibana
+        ignore_errors: yes
+
+    -   name: Applying role filebeat
+        command: mv ~/.ansible/roles/geerlingguy.filebeat ~/.ansible/roles/pwslab.filebeat
+        ignore_errors: yes
+
+    -   name: Applying role Java
+        command: mv ~/.ansible/roles/geerlingguy.java ~/.ansible/roles/pwslab.java
+        ignore_errors: yes
+
+    -   name: Installing Java
+        include_role:
+            name: pwslab.java
+        when: 
+            - os_check.stdout | regex_search("CentOS Linux 7")
+            - not os_check.stdout | regex_search("CentOS Linux 8")
+        vars:
+            java_packages:
+                - java-11-openjdk
+
+    -   name: Remove Old Java Any
+        yum:
+            name: java*
+            state: absent
+        when: 
+            - os_check.stdout | regex_search("CentOS Linux 8")
+
+    -   name: Install Java 11
+        yum:
+            name: java-11-openjdk-devel
+            state: latest
+        when: 
+            - os_check.stdout | regex_search("CentOS Linux 8")
+
+    -   name: Installing Java
+        include_role:
+            name: pwslab.java
+        when: 
+            - os_check.stdout | regex_search("Ubuntu")
+
+    -   name: Applying replacement
+        lineinfile:
+            dest: /root/.ansible/roles/pwslab.elasticsearch/meta/main.yml
+            regexp: '^(.*)geerlingguy.java(.*)$'
+            line: '  - pwslab.java'
+            state: present
+
+    # - name: Install Role MySQL
+    #   local_action: command ansible-galaxy install -f geerlingguy.mysql
+
+    # - name: Check if MYSQL is already installed
+    #   stat: path=/usr/bin/mysql
+    #   register: mysql_exists
+
+    # - name: Applying role MYSQL
+    #   command: mv ~/.ansible/roles/geerlingguy.mysql ~/.ansible/roles/pwslab.mysql
+    #   when: not mysql_exists.stat.exists
+    #   ignore_errors: yes
+
+    # - name: Installing MYSQL
+    #   include_role:
+    #       name: pwslab.mysql
+    #   when: not mysql_exists.stat.exists
+    
+    - name: Installing elasticsearch
+      include_role:
+          name: pwslab.elasticsearch
+
+    - name: Installing logstash
+      include_role:
+          name: pwslab.logstash
+
+    - name: Installing kibana
+      include_role:
+          name: pwslab.kibana
+
+    - name: Installing filebeat
+      include_role:
+          name: pwslab.filebeat
+
+    
